@@ -1,0 +1,30 @@
+service: teste-webhook-clicksign
+
+provider:
+  name: aws
+  runtime: python3.7
+  stage: ${opt:stage,'staging'}
+  deploymentBucket: serverless-deploys-product-hacking-creditas
+
+functions:
+  teste:
+    handler: handler.main
+    events:
+      - http:
+          path: clicksign/notifica
+          method: post
+    memorySize: 128
+    role: arn:aws:iam::241114861320:role/lambda-rds-access
+    timeout: 25
+    tags:
+      Owner: guilherme.risnik
+      Squad: ProductHacking
+      Application: teste
+      Name: teste
+    vpc:
+      securityGroupIds:
+        - sg-0999f0c290ecf62dc
+      subnetIds:
+        - subnet-03b1e25e9d9ac4d05
+        - subnet-0767bf53de516d37e
+        - subnet-0fc0dd95c2029dc41

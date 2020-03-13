@@ -1,0 +1,233 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "TesteLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/teste-webhook-clicksign-staging-teste"
+      }
+    },
+    "TesteLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "serverless-deploys-product-hacking-creditas",
+          "S3Key": "serverless/teste-webhook-clicksign/staging/1584130536573-2020-03-13T20:15:36.573Z/teste-webhook-clicksign.zip"
+        },
+        "FunctionName": "teste-webhook-clicksign-staging-teste",
+        "Handler": "handler.main",
+        "MemorySize": 128,
+        "Role": "arn:aws:iam::241114861320:role/lambda-rds-access",
+        "Runtime": "python3.7",
+        "Timeout": 25,
+        "Tags": [
+          {
+            "Key": "Owner",
+            "Value": "guilherme.risnik"
+          },
+          {
+            "Key": "Squad",
+            "Value": "ProductHacking"
+          },
+          {
+            "Key": "Application",
+            "Value": "teste"
+          },
+          {
+            "Key": "Name",
+            "Value": "teste"
+          }
+        ],
+        "VpcConfig": {
+          "SecurityGroupIds": [
+            "sg-0999f0c290ecf62dc"
+          ],
+          "SubnetIds": [
+            "subnet-03b1e25e9d9ac4d05",
+            "subnet-0767bf53de516d37e",
+            "subnet-0fc0dd95c2029dc41"
+          ]
+        }
+      },
+      "DependsOn": [
+        "TesteLogGroup"
+      ]
+    },
+    "TesteLambdaVersionDIPM5cecvVw7ryvQynYdQX8IX6GTqrSbDCEKeGx0Q": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "TesteLambdaFunction"
+        },
+        "CodeSha256": "xcH/RXjUBXvqd2WhptWQWoSPiYaW05M6Hz7Myzw8xug="
+      }
+    },
+    "ApiGatewayRestApi": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "staging-teste-webhook-clicksign",
+        "EndpointConfiguration": {
+          "Types": [
+            "EDGE"
+          ]
+        },
+        "Policy": ""
+      }
+    },
+    "ApiGatewayResourceClicksign": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "ApiGatewayRestApi",
+            "RootResourceId"
+          ]
+        },
+        "PathPart": "clicksign",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayResourceClicksignNotifica": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Ref": "ApiGatewayResourceClicksign"
+        },
+        "PathPart": "notifica",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        }
+      }
+    },
+    "ApiGatewayMethodClicksignNotificaPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceClicksignNotifica"
+        },
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "TesteLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      }
+    },
+    "ApiGatewayDeployment1584130536065": {
+      "Type": "AWS::ApiGateway::Deployment",
+      "Properties": {
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "StageName": "staging"
+      },
+      "DependsOn": [
+        "ApiGatewayMethodClicksignNotificaPost"
+      ]
+    },
+    "TesteLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "TesteLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": "serverless-deploys-product-hacking-creditas"
+    },
+    "TesteLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "TesteLambdaVersionDIPM5cecvVw7ryvQynYdQX8IX6GTqrSbDCEKeGx0Q"
+      }
+    },
+    "ServiceEndpoint": {
+      "Description": "URL of the service endpoint",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "ApiGatewayRestApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix"
+            },
+            "/staging"
+          ]
+        ]
+      }
+    }
+  }
+}
